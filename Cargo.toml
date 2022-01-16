@@ -18,3 +18,7 @@ path = "src/wordle-solve/main.rs"
 [[bin]]
 name = "wordle-solve-all"
 path = "src/wordle-solve-all/main.rs"
+
+[[bin]]
+name = "wordle-exp"
+path = "src/wordle-exp/main.rs"
