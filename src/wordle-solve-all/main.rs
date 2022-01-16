@@ -1,7 +1,6 @@
-use num_format::{Locale, ToFormattedString};
 use std::collections::HashSet;
 use std::error::Error;
-use wordle::{Filter, WordList};
+use wordle::{report_stats, Filter, WordList};
 
 #[derive(Debug)]
 struct Guess {
@@ -46,30 +45,6 @@ impl Solution {
 	}
 }
 
-fn report_stats(stats: &mut [usize]) {
-	stats.sort();
-	println!(
-		"Total:           {}",
-		stats.len().to_formatted_string(&Locale::en)
-	);
-	println!(
-		"Median Guesses:  {}",
-		stats[stats.len() / 2].to_formatted_string(&Locale::en)
-	);
-	println!(
-		"Max Guesses:     {}",
-		stats[stats.len() - 1].to_formatted_string(&Locale::en)
-	);
-	println!(
-		"Avg Guesses:     {:0.1}",
-		stats.iter().sum::<usize>() as f64 / stats.len() as f64
-	);
-	println!(
-		"Percent Success: {:0.1}%",
-		100.0 * stats.iter().filter(|g| **g <= 6).count() as f64 / stats.len() as f64
-	);
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-solve-all")
 		.arg(
@@ -105,7 +80,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let word_list = WordList::read(matches.value_of("words").unwrap())?;
 	for solution in word_list.words() {
 		let s = Solution::find(&word_list, &solution).unwrap();
-		if verbose && (to_show.is_empty() || to_show.contains(solution)) {
+		if verbose && (to_show.is_empty() || to_show.contains(solution))
+			|| s.number_of_guesses() > 6
+		{
 			println!("{}", solution.to_uppercase());
 			s.emit();
 			println!();

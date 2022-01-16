@@ -1,3 +1,5 @@
+use num_format::{Locale, ToFormattedString};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::io::{self, BufRead, BufReader};
@@ -145,5 +147,54 @@ impl Filter {
 			&& self.directives[2] == Directive::Green
 			&& self.directives[3] == Directive::Green
 			&& self.directives[4] == Directive::Green
+	}
+}
+
+pub fn report_stats(stats: &mut [usize]) {
+	stats.sort();
+
+	let max = stats[stats.len() - 1];
+
+	let mut hist = HashMap::new();
+	for n in stats.iter() {
+		*hist.entry(n).or_insert(0) += 1;
+	}
+
+	println!(
+		"Total:           {}",
+		stats.len().to_formatted_string(&Locale::en)
+	);
+	println!(
+		"Median Guesses:  {}",
+		stats[stats.len() / 2].to_formatted_string(&Locale::en)
+	);
+	println!("Max Guesses:     {}", max.to_formatted_string(&Locale::en));
+	println!(
+		"Avg Guesses:     {:0.1}",
+		stats.iter().sum::<usize>() as f64 / stats.len() as f64
+	);
+
+	let failed = stats.iter().filter(|g| **g > 6).count();
+	println!(
+		"Percent Failed:  {:0.1}% ({})",
+		100.0 * failed as f64 / stats.len() as f64,
+		failed.to_formatted_string(&Locale::en)
+	);
+
+	println!();
+
+	println!("Guesses Histogram");
+	let dw = 60.0 / *hist.values().max().unwrap() as f64;
+	for i in 1..=max {
+		let v = *hist.get(&i).unwrap_or(&0);
+		let w = v as f64 * dw;
+		let bar = std::iter::repeat("#").take(w as usize).collect::<String>();
+		println!(
+			"{:2}: #{} {} ({:0.1}%)",
+			i,
+			bar,
+			v.to_formatted_string(&Locale::en),
+			100.0 * v as f64 / stats.len() as f64
+		);
 	}
 }
