@@ -17,7 +17,10 @@ impl WordList {
 	}
 
 	pub fn first(&self) -> Cursor {
-		Cursor { words: &self.words }
+		Cursor {
+			words: &self.words,
+			guesses: Vec::new(),
+		}
 	}
 
 	pub fn words(&self) -> &[String] {
@@ -27,6 +30,7 @@ impl WordList {
 
 pub struct Cursor<'a> {
 	words: &'a [String],
+	guesses: Vec<(Vec<char>, Filter)>,
 }
 
 impl<'a> Cursor<'a> {
@@ -38,8 +42,13 @@ impl<'a> Cursor<'a> {
 		let current = self.word().chars().collect::<Vec<char>>();
 		for (i, w) in self.words.iter().enumerate() {
 			let candidate = w.chars().collect::<Vec<char>>();
+			let ok = self.guesses.iter().all(|(g, f)| f.matches(&g, &candidate));
+			if !ok {
+				continue;
+			}
 			if f.matches(&current, &candidate) {
 				self.words = &self.words[i..];
+				self.guesses.push((current, f.clone()));
 				return true;
 			}
 		}

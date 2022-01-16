@@ -15,7 +15,7 @@ struct Solution {
 }
 
 impl Solution {
-	fn find(words: &WordList, solution: &str) -> Solution {
+	fn find(words: &WordList, solution: &str) -> Option<Solution> {
 		let mut c = words.first();
 		let mut guesses = Vec::new();
 		loop {
@@ -28,9 +28,11 @@ impl Solution {
 			if filter.all_green() {
 				break;
 			}
-			c.apply(&filter);
+			if !c.apply(&filter) {
+				return None;
+			}
 		}
-		Solution { guesses }
+		Some(Solution { guesses })
 	}
 
 	fn number_of_guesses(&self) -> usize {
@@ -102,7 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut stats = Vec::new();
 	let word_list = WordList::read(matches.value_of("words").unwrap())?;
 	for solution in word_list.words() {
-		let s = Solution::find(&word_list, &solution);
+		let s = Solution::find(&word_list, &solution).unwrap();
 		if verbose && (to_show.is_empty() || to_show.contains(solution)) {
 			println!("{}", solution.to_uppercase());
 			s.emit();
