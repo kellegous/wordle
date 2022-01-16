@@ -38,13 +38,53 @@ fn rank(words: &HashSet<String>) -> Vec<(&String, u32)> {
 	ranked.sort_by_key(|(w, s)| (Reverse(*s), *w));
 	ranked
 }
+
+struct Freq {
+	counts: [u32; 26 * 5],
+}
+
+impl Freq {
+	fn from(words: &HashSet<String>) -> Freq {
+		let mut f = Freq {
+			counts: [0; 26 * 5],
+		};
+		for word in words {
+			f.insert(word);
+		}
+		f
+	}
+	fn insert(&mut self, w: &str) {
+		for (i, c) in w.char_indices() {
+			let ix = i * 26 + (c as usize - 'a' as usize);
+			self.counts[ix] += 1;
+		}
+	}
+
+	fn score(&self, w: &str) -> u32 {
+		let mut tally = vec![0; 26];
+		for (i, c) in w.char_indices() {
+			let ord = c as usize - 'a' as usize;
+			let ix = i * 26 + ord;
+			tally[ord] = tally[ord].max(self.counts[ix]);
+		}
+		tally.iter().sum()
+	}
+}
+
+fn rank_with_position(words: &HashSet<String>) -> Vec<(&String, u32)> {
+	let f = Freq::from(words);
+	let mut ranked = words.iter().map(|w| (w, f.score(w))).collect::<Vec<_>>();
+	ranked.sort_by_key(|(w, s)| (Reverse(*s), *w));
+	ranked
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-build-wordlist")
 		.arg(
 			clap::Arg::new("src")
 				.long("src")
 				.takes_value(true)
-				.default_value("/usr/share/dict/words")
+				.default_value("words")
 				.help("source dictionary"),
 		)
 		.arg(
@@ -54,10 +94,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 				.default_value("wordle.txt")
 				.help("destination for ranked wordlist"),
 		)
+		.arg(
+			clap::Arg::new("naive-freq")
+				.long("naive-freq")
+				.help("old way of computing liklihood"),
+		)
 		.get_matches();
 
 	let words = read_words_from(matches.value_of("src").unwrap(), 5)?;
-	let words = rank(&words);
+	let words = if matches.is_present("naive-freq") {
+		rank(&words)
+	} else {
+		rank_with_position(&words)
+	};
 	let mut w = fs::File::create(matches.value_of("dst").unwrap())?;
 	for (word, _) in &words {
 		writeln!(w, "{}", word)?;
