@@ -39,7 +39,7 @@ Enter "piano" into the 2nd line of the puzzle. Let's now assume you get feedback
 The next command to run will be:
 
 ```
-$ ./target/release/wordle-solve gyyyx
+$ ./target/release/wordle-solve yxxxx gyyyx
 panic
 ```
 
