@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = "3.0"
+num-format = "0.4.0"
 
 [[bin]]
 name = "wordle-build-wordlist"
@@ -13,3 +14,7 @@ path = "src/wordle-build-wordlist/main.rs"
 [[bin]]
 name = "wordle-solve"
 path = "src/wordle-solve/main.rs"
+
+[[bin]]
+name = "wordle-solve-all"
+path = "src/wordle-solve-all/main.rs"
