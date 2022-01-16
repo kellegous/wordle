@@ -7,10 +7,6 @@ edition = "2021"
 clap = "3.0"
 
 [[bin]]
-name = "wordle"
-path = "src/wordle/main.rs"
-
-[[bin]]
 name = "wordle-build-wordlist"
 path = "src/wordle-build-wordlist/main.rs"
 
