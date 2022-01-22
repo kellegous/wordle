@@ -4,16 +4,14 @@ use std::collections::HashSet;
 use std::error::Error;
 use wordle::{Guess, Word, Words};
 
-struct Stats {
+struct StatsRecorder {
 	num_guesses: Vec<usize>,
-	finished: bool,
 }
 
-impl Stats {
-	fn new(n: usize) -> Stats {
-		Stats {
+impl StatsRecorder {
+	fn new(n: usize) -> StatsRecorder {
+		StatsRecorder {
 			num_guesses: Vec::with_capacity(n),
-			finished: false,
 		}
 	}
 
@@ -21,17 +19,20 @@ impl Stats {
 		self.num_guesses.push(solution.number_of_guesses());
 	}
 
-	fn finish(&mut self) {
+	fn finish(mut self) -> Stats {
 		self.num_guesses.sort();
-		self.finished = true;
-	}
-
-	fn report(&self) {
-		// TODO(knorton): This is dumb.
-		if !self.finished {
-			panic!("Stats must be finished");
+		Stats {
+			num_guesses: self.num_guesses,
 		}
+	}
+}
 
+struct Stats {
+	num_guesses: Vec<usize>,
+}
+
+impl Stats {
+	fn report(&self) {
 		if self.num_guesses.is_empty() {
 			return;
 		}
@@ -139,7 +140,7 @@ where
 	S: Fn(&Words, &Word) -> Option<Solution>,
 	P: Fn(&Word, &Solution) -> bool,
 {
-	let mut stats = Stats::new(words.words().len());
+	let mut stats = StatsRecorder::new(words.words().len());
 	for solution in words.words() {
 		let solved = solve_fn(words, &solution).ok_or("no solution")?;
 		if print_fn(&solution, &solved) {
@@ -149,8 +150,7 @@ where
 		}
 		stats.record(&solved);
 	}
-	stats.finish();
-	Ok(stats)
+	Ok(stats.finish())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
