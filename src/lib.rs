@@ -140,7 +140,7 @@ impl Guess {
 	}
 
 	pub fn matches(&self, candidate: &Word) -> bool {
-		(0..WORD_SIZE).all(|i| self.feedback[i].matches2(i, &self.word, candidate))
+		(0..WORD_SIZE).all(|i| self.feedback[i].matches(i, &self.word, candidate))
 	}
 
 	pub fn is_all_green(&self) -> bool {
@@ -255,30 +255,8 @@ pub enum Directive {
 	Gray,
 }
 
-impl std::fmt::Display for Directive {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(
-			f,
-			"{}",
-			match self {
-				Directive::Green => "🟩",
-				Directive::Yellow => "🟨",
-				Directive::Gray => "⬜",
-			}
-		)
-	}
-}
-
 impl Directive {
-	pub fn matches(&self, i: usize, current: &[char], candidate: &[char]) -> bool {
-		match self {
-			Directive::Green => current[i] == candidate[i],
-			Directive::Yellow => current[i] != candidate[i] && candidate.contains(&current[i]),
-			Directive::Gray => !candidate.contains(&current[i]),
-		}
-	}
-
-	fn matches2(&self, i: usize, guess: &Word, candidate: &Word) -> bool {
+	fn matches(&self, i: usize, guess: &Word, candidate: &Word) -> bool {
 		match self {
 			Directive::Green => guess[i] == candidate[i],
 			Directive::Yellow => guess[i] != candidate[i] && candidate.contains(guess[i]),
