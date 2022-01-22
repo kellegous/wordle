@@ -8,21 +8,21 @@ clap = "3.0"
 num-format = "0.4"
 chrono = "0.4"
 
-[[bin]]
-name = "wordle-build-wordlist"
-path = "src/wordle-build-wordlist/main.rs"
+# [[bin]]
+# name = "wordle-build-wordlist"
+# path = "src/wordle-build-wordlist/main.rs"
 
-[[bin]]
-name = "wordle-solve"
-path = "src/wordle-solve/main.rs"
+# [[bin]]
+# name = "wordle-solve"
+# path = "src/wordle-solve/main.rs"
 
 [[bin]]
 name = "wordle-solve-all"
 path = "src/wordle-solve-all/main.rs"
 
-[[bin]]
-name = "wordle-exp"
-path = "src/wordle-exp/main.rs"
+# [[bin]]
+# name = "wordle-exp"
+# path = "src/wordle-exp/main.rs"
 
 [[bin]]
 name = "wordle-list-solutions"

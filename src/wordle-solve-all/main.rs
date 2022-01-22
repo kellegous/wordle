@@ -1,36 +1,43 @@
 use std::collections::HashSet;
 use std::error::Error;
-use wordle::{report_stats, Filter, WordList};
+use wordle::{report_stats, Guess, Word, Words};
 
-#[derive(Debug)]
-struct Guess {
-	word: String,
-	filter: Filter,
-}
-
-#[derive(Debug)]
 struct Solution {
 	guesses: Vec<Guess>,
 }
 
 impl Solution {
-	fn find(words: &WordList, solution: &str) -> Option<Solution> {
-		let mut c = words.first();
+	fn find(words: &Words, solution: &Word) -> Option<Solution> {
 		let mut guesses = Vec::new();
+
+		let word = match words.first() {
+			Some(w) => w,
+			None => return None,
+		};
+
+		let guess = Guess::new(&word, solution);
+		guesses.push(guess.clone());
+		if guess.is_all_green() {
+			return Some(Solution { guesses });
+		}
+
+		let mut candidates = words.filter(|w| guess.matches(w));
+
 		loop {
-			let word = c.word();
-			let filter = Filter::from_guess(word, solution);
-			guesses.push(Guess {
-				word: word.to_owned(),
-				filter: filter.clone(),
-			});
-			if filter.all_green() {
+			let word = match candidates.first() {
+				Some(w) => w,
+				None => return None,
+			};
+
+			let guess = Guess::new(&word, solution);
+			guesses.push(guess.clone());
+			if guess.is_all_green() {
 				break;
 			}
-			if !c.apply(&filter) {
-				return None;
-			}
+
+			candidates = candidates.filter_into(|w| guess.matches(w));
 		}
+
 		Some(Solution { guesses })
 	}
 
@@ -40,7 +47,7 @@ impl Solution {
 
 	fn emit(&self) {
 		for guess in self.guesses.iter() {
-			println!("{} {}", guess.word, guess.filter)
+			println!("{}", guess)
 		}
 	}
 }
@@ -71,22 +78,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.get_matches();
 
 	let to_show = match matches.values_of("solutions") {
-		Some(vals) => vals.map(|v| v.to_owned()).collect::<HashSet<_>>(),
+		Some(vals) => vals
+			.map(|v| Word::from_str(v))
+			.collect::<Result<HashSet<_>, _>>()?,
 		None => HashSet::new(),
 	};
 
 	let verbose = matches.is_present("verbose") || !to_show.is_empty();
 	let mut stats = Vec::new();
-	let word_list = WordList::read(matches.value_of("words").unwrap())?;
-	for solution in word_list.words() {
-		let s = Solution::find(&word_list, &solution).unwrap();
+	let words = Words::from_file(matches.value_of("words").unwrap())?;
+	for solution in words.words() {
+		let s = Solution::find(&words, &solution).unwrap();
 		if verbose && (to_show.is_empty() || to_show.contains(solution))
 			|| s.number_of_guesses() > 6
 		{
-			println!("{}", solution.to_uppercase());
+			println!("{}", solution.to_string());
 			s.emit();
 			println!();
 		}
+
 		stats.push(s.number_of_guesses());
 	}
 
