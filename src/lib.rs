@@ -1,9 +1,13 @@
+use num_format::{Locale, ToFormattedString};
 use std::cmp::Ordering;
 use std::cmp::Reverse;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::io::{self, BufReader};
 use std::path::Path;
+
+pub mod a;
 
 const WORD_SIZE: usize = 5;
 
@@ -275,6 +279,114 @@ impl Directive {
 			Directive::Green => '🟩',
 			Directive::Yellow => '🟨',
 			Directive::Gray => '⬜',
+		}
+	}
+}
+
+pub struct Solution {
+	guesses: Vec<Guess>,
+}
+
+impl Solution {
+	pub fn new(guesses: Vec<Guess>) -> Solution {
+		Solution { guesses }
+	}
+
+	pub fn number_of_guesses(&self) -> usize {
+		self.guesses.len()
+	}
+
+	pub fn guesses(&self) -> &[Guess] {
+		&self.guesses
+	}
+}
+
+pub struct Stats {
+	num_guesses: Vec<usize>,
+}
+
+impl Stats {
+	fn new(num_guesses: Vec<usize>) -> Stats {
+		let mut num_guesses = num_guesses;
+		num_guesses.sort();
+		Stats { num_guesses }
+	}
+
+	pub fn report(&self) {
+		if self.num_guesses.is_empty() {
+			return;
+		}
+
+		let n = self.num_guesses.len();
+
+		let max = self.num_guesses[n - 1];
+		let mut hist = HashMap::new();
+		for n in self.num_guesses.iter() {
+			*hist.entry(n).or_insert(0) += 1;
+		}
+		println!("Total:           {}", n.to_formatted_string(&Locale::en));
+		println!(
+			"Median Guesses:  {}",
+			self.num_guesses[n / 2].to_formatted_string(&Locale::en)
+		);
+		println!("Max Guesses:     {}", max.to_formatted_string(&Locale::en));
+		println!(
+			"Avg Guesses:     {:0.1}",
+			self.num_guesses.iter().sum::<usize>() as f64 / n as f64
+		);
+		let failed = self.num_guesses.iter().filter(|g| **g > 6).count();
+		println!(
+			"Percent Failed:  {:0.1}% ({})",
+			100.0 * failed as f64 / n as f64,
+			failed.to_formatted_string(&Locale::en)
+		);
+		println!();
+		println!("Guesses Histogram");
+		let dw = 60.0 / *hist.values().max().unwrap() as f64;
+		for i in 1..=max {
+			let v = *hist.get(&i).unwrap_or(&0);
+			let w = v as f64 * dw;
+			let bar = std::iter::repeat("#").take(w as usize).collect::<String>();
+			println!(
+				"{:2}: #{} {} ({:0.1}%)",
+				i,
+				bar,
+				v.to_formatted_string(&Locale::en),
+				100.0 * v as f64 / n as f64
+			);
+		}
+	}
+}
+
+pub fn solve_all<S, P>(words: &Words, solve_fn: S, print_fn: P) -> Result<Stats, Box<dyn Error>>
+where
+	S: Fn(&Words, &Word) -> Option<Solution>,
+	P: Fn(&Word, &Solution) -> bool,
+{
+	let mut stats = Vec::with_capacity(words.words().len());
+	for solution in words.words() {
+		let solved = solve_fn(words, &solution).ok_or("no solution")?;
+		if print_fn(&solution, &solved) {
+			println!("{}", solution.to_string().to_uppercase());
+			for guess in solved.guesses() {
+				println!("{}", guess);
+			}
+			println!();
+		}
+		stats.push(solved.number_of_guesses());
+	}
+	Ok(Stats::new(stats))
+}
+
+pub enum Strategy {
+	A,
+}
+
+impl Strategy {
+	pub fn from_str(s: &str) -> Result<Strategy, Box<dyn Error>> {
+		match s {
+			"a" => Ok(Strategy::A),
+			_ => Err(format!("invalid strategy: {}", s).into()),
 		}
 	}
 }
