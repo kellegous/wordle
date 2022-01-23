@@ -27,3 +27,7 @@ path = "src/wordle-solve-all/main.rs"
 [[bin]]
 name = "wordle-list-solutions"
 path = "src/wordle-list-solutions/main.rs"
+
+[[bin]]
+name = "wordle-analysis"
+path = "src/wordle-analysis/main.rs"

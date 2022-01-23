@@ -75,13 +75,13 @@ impl std::ops::Index<usize> for Word {
 	}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Feedback {
 	directives: [Directive; WORD_SIZE],
 }
 
 impl Feedback {
-	fn from_word(guess: &Word, solution: &Word) -> Feedback {
+	pub fn from_word(guess: &Word, solution: &Word) -> Feedback {
 		let mut directives = [Directive::Green; WORD_SIZE];
 		for (i, c) in guess.chars().iter().enumerate() {
 			directives[i] = if *c == solution[i] {
@@ -249,7 +249,7 @@ impl std::ops::Index<usize> for Words {
 	}
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 #[repr(u8)]
 pub enum Directive {
 	Green,
