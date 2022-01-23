@@ -368,9 +368,9 @@ impl Stats {
 		for i in 1..=max {
 			let v = *hist.get(&i).unwrap_or(&0);
 			let w = v as f64 * dw;
-			let bar = std::iter::repeat("#").take(w as usize).collect::<String>();
+			let bar = std::iter::repeat("░").take(w as usize).collect::<String>();
 			println!(
-				"{:2}: #{} {} ({:0.1}%)",
+				"{:2}: ░{} {} ({:0.1}%)",
 				i,
 				bar,
 				v.to_formatted_string(&Locale::en),
