@@ -7,7 +7,7 @@ use std::fs;
 use std::io::{self, BufReader};
 use std::path::Path;
 
-pub mod a;
+mod a;
 
 const WORD_SIZE: usize = 5;
 
@@ -388,5 +388,12 @@ impl Strategy {
 			"a" => Ok(Strategy::A),
 			_ => Err(format!("invalid strategy: {}", s).into()),
 		}
+	}
+
+	pub fn solve(&self, words: &Words, word: &Word) -> Option<Solution> {
+		let solve_fn = match self {
+			Strategy::A => a::solve,
+		};
+		solve_fn(words, word)
 	}
 }
