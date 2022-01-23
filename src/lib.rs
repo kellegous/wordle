@@ -8,6 +8,7 @@ use std::io::{self, BufReader};
 use std::path::Path;
 
 mod a;
+mod b;
 
 const WORD_SIZE: usize = 5;
 
@@ -25,8 +26,19 @@ impl Char {
 		Char { c: (o as u8 - 97) }
 	}
 
+	pub fn from_u8(c: u8) -> Char {
+		if c > 25 {
+			panic!("invalid character: {}", c);
+		}
+		Char { c }
+	}
+
 	pub fn char(&self) -> char {
 		(self.c + 97) as char
+	}
+
+	pub fn ord(&self) -> u8 {
+		self.c
 	}
 }
 
@@ -72,6 +84,12 @@ impl std::ops::Index<usize> for Word {
 
 	fn index(&self, ix: usize) -> &Self::Output {
 		&self.chars[ix]
+	}
+}
+
+impl std::fmt::Display for Word {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}", self.to_string())
 	}
 }
 
@@ -150,6 +168,10 @@ impl Guess {
 			.directives()
 			.iter()
 			.all(|d| *d == Directive::Green)
+	}
+
+	pub fn iter(&self) -> impl Iterator<Item = (Directive, Char)> + '_ {
+		(0..WORD_SIZE).map(|i| (self.feedback[i], self.word[i]))
 	}
 }
 
@@ -365,7 +387,7 @@ where
 {
 	let mut stats = Vec::with_capacity(words.words().len());
 	for solution in words.words() {
-		let solved = solve_fn(words, &solution).ok_or("no solution")?;
+		let solved = solve_fn(words, &solution).ok_or(format!("no soution for {}", &solution))?;
 		if print_fn(&solution, &solved) {
 			println!("{}", solution.to_string().to_uppercase());
 			for guess in solved.guesses() {
@@ -380,12 +402,14 @@ where
 
 pub enum Strategy {
 	A,
+	B,
 }
 
 impl Strategy {
 	pub fn from_str(s: &str) -> Result<Strategy, Box<dyn Error>> {
 		match s {
 			"a" => Ok(Strategy::A),
+			"b" => Ok(Strategy::B),
 			_ => Err(format!("invalid strategy: {}", s).into()),
 		}
 	}
@@ -393,6 +417,7 @@ impl Strategy {
 	pub fn solve(&self, words: &Words, word: &Word) -> Option<Solution> {
 		let solve_fn = match self {
 			Strategy::A => a::solve,
+			Strategy::B => b::solve,
 		};
 		solve_fn(words, word)
 	}
