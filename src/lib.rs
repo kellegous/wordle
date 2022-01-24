@@ -208,6 +208,7 @@ impl From<f64> for Score {
 	}
 }
 
+#[derive(Clone)]
 pub struct Words {
 	words: Vec<Word>,
 }

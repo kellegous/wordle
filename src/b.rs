@@ -65,6 +65,46 @@ impl CharSet {
 	}
 }
 
+struct Entry<'a, V> {
+	v: &'a mut Option<V>,
+}
+
+impl<'a, V> Entry<'a, V> {
+	fn or_insert(&mut self, default: V) -> &mut V {
+		if let None = self.v {
+			*self.v = Some(default);
+		}
+		self.v.as_mut().unwrap()
+	}
+}
+
+#[derive(Debug)]
+struct CharMap<T> {
+	values: [Option<T>; 26],
+}
+
+impl<T> CharMap<T> {
+	fn new() -> CharMap<T> {
+		CharMap {
+			values: Default::default(),
+		}
+	}
+
+	fn get_mut(&mut self, key: Char) -> &mut Option<T> {
+		&mut self.values[key.ord() as usize]
+	}
+
+	fn get(&self, key: Char) -> Option<&T> {
+		self.values[key.ord() as usize].as_ref()
+	}
+
+	fn entry(&mut self, key: Char) -> Entry<'_, T> {
+		Entry {
+			v: self.get_mut(key),
+		}
+	}
+}
+
 struct Constraints {
 	positions: [CharSet; 5],
 	must_have: CharSet,
@@ -113,6 +153,16 @@ impl Constraints {
 
 		true
 	}
+
+	fn unique_chars(&self) -> CharSet {
+		let mut chars = CharSet::empty();
+		for pos in self.positions {
+			for c in pos.iter() {
+				chars.insert(c);
+			}
+		}
+		chars
+	}
 }
 
 impl std::fmt::Display for Constraints {
@@ -126,23 +176,41 @@ impl std::fmt::Display for Constraints {
 	}
 }
 
+fn score(word: &Word, freq: &CharMap<usize>, s: &CharSet) -> usize {
+	let mut chars = CharSet::empty();
+	for c in word.chars() {
+		chars.insert(*c);
+	}
+
+	chars
+		.iter()
+		.map(|c| {
+			if s.contains(c) {
+				freq.get(c).unwrap_or(&0)
+			} else {
+				&0
+			}
+		})
+		.sum()
+}
+
+fn rank(words: &mut Words, freq: &CharMap<usize>, constraints: &Constraints) {
+	let chars = constraints.unique_chars();
+	words.rank(|w| score(w, freq, &chars) as f64);
+}
+
 pub fn solve(words: &Words, solution: &Word) -> Option<Solution> {
+	let mut counts = CharMap::new();
+	for word in words.words() {
+		for c in word.chars() {
+			*counts.entry(*c).or_insert(0) += 1;
+		}
+	}
+
 	let mut guesses = Vec::new();
 	let mut constraints = Constraints::new();
 
-	let word = match words.first() {
-		Some(w) => w,
-		None => return None,
-	};
-
-	let guess = Guess::new(&word, solution);
-	guesses.push(guess.clone());
-	if guess.is_all_green() {
-		return Some(Solution::new(guesses));
-	}
-
-	constraints.add(&guess);
-	let mut candidates = words.filter(|w| constraints.is_satisfied_by(w));
+	let mut candidates = words.clone();
 
 	loop {
 		let word = match candidates.first() {
@@ -157,6 +225,7 @@ pub fn solve(words: &Words, solution: &Word) -> Option<Solution> {
 		}
 
 		constraints.add(&guess);
+		rank(&mut candidates, &counts, &constraints);
 		candidates = candidates.filter_into(|w| constraints.is_satisfied_by(w));
 	}
 
