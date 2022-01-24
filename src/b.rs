@@ -1,4 +1,5 @@
 use super::{Char, Directive, Guess, Solution, Word, Words};
+use std::cmp::Ordering;
 
 const LENS: &[usize] = &[
 	0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -155,13 +156,14 @@ impl Constraints {
 	}
 
 	fn unique_chars(&self) -> CharSet {
-		let mut chars = CharSet::empty();
-		for pos in self.positions {
-			for c in pos.iter() {
-				chars.insert(c);
-			}
-		}
-		chars
+		let (max_index, _) = self
+			.positions
+			.iter()
+			.map(|s| s.len())
+			.enumerate()
+			.max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+			.unwrap();
+		self.positions[max_index].clone()
 	}
 }
 
@@ -176,7 +178,7 @@ impl std::fmt::Display for Constraints {
 	}
 }
 
-fn score(word: &Word, freq: &CharMap<usize>, s: &CharSet) -> usize {
+fn score(word: &Word, freq: &CharMap<usize>, s: &CharSet) -> f64 {
 	let mut chars = CharSet::empty();
 	for c in word.chars() {
 		chars.insert(*c);
@@ -186,9 +188,11 @@ fn score(word: &Word, freq: &CharMap<usize>, s: &CharSet) -> usize {
 		.iter()
 		.map(|c| {
 			if s.contains(c) {
-				freq.get(c).unwrap_or(&0)
+				// freq.get(c).unwrap_or(&0)
+				// *freq.get(c).unwrap_or(&1) as f64 / 2315.0
+				1.0
 			} else {
-				&0
+				0.0
 			}
 		})
 		.sum()
@@ -196,7 +200,7 @@ fn score(word: &Word, freq: &CharMap<usize>, s: &CharSet) -> usize {
 
 fn rank(words: &mut Words, freq: &CharMap<usize>, constraints: &Constraints) {
 	let chars = constraints.unique_chars();
-	words.rank(|w| score(w, freq, &chars) as f64);
+	words.rank(|w| score(w, freq, &chars));
 }
 
 pub fn solve(words: &Words, solution: &Word) -> Option<Solution> {

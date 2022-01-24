@@ -10,7 +10,7 @@ use std::path::Path;
 mod a;
 mod b;
 
-const WORD_SIZE: usize = 5;
+pub const WORD_SIZE: usize = 5;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Char {
