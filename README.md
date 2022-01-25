@@ -4,6 +4,10 @@ Imagine yourself, over two years into a pandemic and people start posting obscur
 
 If you must go down this road, you can begin your journey here. https://www.powerlanguage.co.uk/wordle/
 
+## NOTE: This is a WIP and it's very likely broken.
+
+This is a fun little exploratory project where I'm tinkering with various approaches. This code will be broken a lot until I remove this banner.
+
 ## How to use this solver.
 
 ### Building it.
