@@ -32,7 +32,7 @@ Enter "alert" as the first row of the puzzle. The feedback you receive from the 
 The next command to run will be:
 
 ```
-$ ./target/release/wordle-solve yxxxx
+$ ./target/release/wordle-solve ybbbb
 piano
 ```
 
@@ -53,9 +53,4 @@ As you can see, feedback is entered as 5 character expressions. The characters f
 
  - 🟩 "g"
  - 🟨 "y"
- - ⬜ "x"
-
-## How this works.
-
-This thing is pretty simple, There is a command `wordle-build-wordlist` that takes a list of words (by default it uses a word list extracted from wordle's source code) and it sorts that word list based on letter frequency. When you run the command, it simply selects the first word that is not excluded by the feedback filters. That's it. That's the whole thing.
-
+ - ⬜ "b"

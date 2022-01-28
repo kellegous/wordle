@@ -130,7 +130,7 @@ impl Constraints {
 					self.positions[i].remove(c);
 					self.must_have.insert(c);
 				}
-				Directive::Gray => {
+				Directive::Black => {
 					for pos in &mut self.positions {
 						pos.remove(c);
 					}

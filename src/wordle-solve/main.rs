@@ -1,37 +1,42 @@
 use std::error::Error;
-use wordle::{Filter, WordList};
+use std::fs;
+use std::io::BufReader;
+use wordle::{decision_tree, Feedback};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-solve")
 		.arg(
-			clap::Arg::new("words")
-				.long("words")
+			clap::Arg::new("decision-tree-file")
+				.short('t')
+				.long("decision-tree-file")
 				.takes_value(true)
-				.default_value("wordle.txt")
-				.help("word list file"),
+				.default_value("decision-tree.json")
+				.help("json file containing the decision tree"),
 		)
 		.arg(
-			clap::Arg::new("filters")
+			clap::Arg::new("feedback")
 				.takes_value(true)
 				.multiple_occurrences(true)
-				.help("filters to apply"),
+				.help("feedback received on previous guesses"),
 		)
 		.get_matches();
 
-	let wl = WordList::read(matches.value_of("words").unwrap())?;
-	let filters = match matches.values_of("filters") {
-		Some(vals) => vals
-			.map(|s| Filter::from_str(s))
-			.collect::<Result<Vec<_>, _>>()?,
-		None => Vec::new(),
-	};
+	let tree: decision_tree::Node = serde_json::from_reader(BufReader::new(fs::File::open(
+		matches.value_of("decision-tree-file").unwrap(),
+	)?))?;
 
-	let mut c = wl.first();
-	for filter in filters {
-		if !c.apply(&filter) {
-			break;
-		}
+	let feedback = matches
+		.values_of("feedback")
+		.map(|vals| {
+			vals.map(|s| Feedback::from_str(s))
+				.collect::<Result<Vec<_>, _>>()
+		})
+		.unwrap_or_else(|| Ok(Vec::new()))?;
+
+	let mut node = &tree;
+	for f in &feedback {
+		node = node.next(f).unwrap(); // TODO(knorton): no solution found error.
 	}
-	println!("{}", c.word());
+	println!("{}", node.word());
 	Ok(())
 }

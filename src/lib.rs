@@ -1,18 +1,17 @@
 use num_format::{Locale, ToFormattedString};
-use std::cmp::Ordering;
-use std::cmp::Reverse;
+use serde::de::{self, Deserialize, Deserializer, Visitor};
+use serde::ser::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::io::{self, BufReader};
 use std::path::Path;
 
-mod a;
-mod b;
+pub mod decision_tree;
 
 pub const WORD_SIZE: usize = 5;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Char {
 	c: u8,
 }
@@ -48,7 +47,27 @@ impl Default for Char {
 	}
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+struct WordVisitor;
+
+impl<'de> Visitor<'de> for WordVisitor {
+	type Value = Word;
+
+	fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "5 character word")
+	}
+
+	fn visit_str<E>(self, val: &str) -> Result<Self::Value, E>
+	where
+		E: de::Error,
+	{
+		match Word::from_str(val) {
+			Ok(word) => Ok(word),
+			Err(e) => Err(E::custom(e)),
+		}
+	}
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Word {
 	chars: [Char; WORD_SIZE],
 }
@@ -93,22 +112,87 @@ impl std::fmt::Display for Word {
 	}
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
+impl Serialize for Word {
+	fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		s.serialize_str(&self.to_string())
+	}
+}
+
+impl<'de> Deserialize<'de> for Word {
+	fn deserialize<D>(d: D) -> Result<Word, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		d.deserialize_str(WordVisitor {})
+	}
+}
+
+struct FeedbackVisitor;
+
+impl<'de> Visitor<'de> for FeedbackVisitor {
+	type Value = Feedback;
+
+	fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "a 5 character feedback string")
+	}
+
+	fn visit_str<E>(self, val: &str) -> Result<Self::Value, E>
+	where
+		E: de::Error,
+	{
+		match Feedback::from_str(val) {
+			Ok(f) => Ok(f),
+			Err(e) => Err(E::custom(e)),
+		}
+	}
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
 pub struct Feedback {
 	directives: [Directive; WORD_SIZE],
 }
 
 impl Feedback {
-	pub fn from_word(guess: &Word, solution: &Word) -> Feedback {
+	pub fn from_str(s: &str) -> Result<Feedback, Box<dyn Error>> {
+		if s.len() != WORD_SIZE {
+			return Err(format!("feedback must be {} characters", WORD_SIZE).into());
+		}
 		let mut directives = [Directive::Green; WORD_SIZE];
-		for (i, c) in guess.chars().iter().enumerate() {
-			directives[i] = if *c == solution[i] {
-				Directive::Green
-			} else if solution.contains(*c) {
-				Directive::Yellow
-			} else {
-				Directive::Gray
+		for (i, c) in s.char_indices() {
+			directives[i] = match c {
+				'g' | 'G' => Directive::Green,
+				'y' | 'Y' => Directive::Yellow,
+				'b' | 'B' => Directive::Black,
+				_ => return Err(format!("invalid directive: {}", c).into()),
 			};
+		}
+		Ok(Feedback { directives })
+	}
+
+	pub fn from_word(guess: &Word, solution: &Word) -> Feedback {
+		// TODO(knorton): This is doggy doo.
+		let mut directives = [Directive::Black; WORD_SIZE];
+		let mut resolved = [false; WORD_SIZE];
+		for (i, c) in guess.chars().iter().enumerate() {
+			if solution[i] == *c {
+				directives[i] = Directive::Green;
+				resolved[i] = true;
+			}
+		}
+		for (i, c) in guess.chars().iter().enumerate() {
+			if directives[i] == Directive::Green {
+				continue;
+			}
+			for (j, k) in solution.chars().iter().enumerate() {
+				if !resolved[j] && *k == *c {
+					directives[i] = Directive::Yellow;
+					resolved[j] = true;
+					break;
+				}
+			}
 		}
 		Feedback { directives }
 	}
@@ -137,17 +221,49 @@ impl std::ops::Index<usize> for Feedback {
 	}
 }
 
-#[derive(Clone)]
+impl std::fmt::Display for Feedback {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}", self.to_string())
+	}
+}
+
+impl Serialize for Feedback {
+	fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		s.serialize_str(&self.to_ascii_string())
+	}
+}
+
+impl<'de> Deserialize<'de> for Feedback {
+	fn deserialize<D>(d: D) -> Result<Feedback, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		d.deserialize_str(FeedbackVisitor {})
+	}
+}
+
+#[derive(Clone, Debug)]
 pub struct Guess {
 	feedback: Feedback,
 	word: Word,
 }
 
+// TODO(knorton): Fix the names of methods here.
 impl Guess {
 	pub fn new(word: &Word, solution: &Word) -> Guess {
 		Guess {
 			word: *word,
 			feedback: Feedback::from_word(word, solution),
+		}
+	}
+
+	pub fn from_feedback_and_word(feedback: Feedback, word: Word) -> Guess {
+		Guess {
+			feedback: feedback,
+			word: word,
 		}
 	}
 
@@ -186,98 +302,12 @@ impl std::fmt::Display for Guess {
 	}
 }
 
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
-pub struct Score {
-	v: f64,
-}
-
-impl std::cmp::Ord for Score {
-	fn cmp(&self, b: &Score) -> Ordering {
-		match self.partial_cmp(b) {
-			Some(o) => o,
-			None => std::cmp::Ordering::Equal,
-		}
-	}
-}
-
-impl std::cmp::Eq for Score {}
-
-impl From<f64> for Score {
-	fn from(v: f64) -> Score {
-		Score { v }
-	}
-}
-
-#[derive(Clone)]
-pub struct Words {
-	words: Vec<Word>,
-}
-
-impl Words {
-	pub fn from_reader<R: io::BufRead>(r: R) -> Result<Words, Box<dyn Error>> {
-		let mut words = Vec::new();
-		for line in r.lines() {
-			words.push(Word::from_str(&line?)?);
-		}
-		Ok(Words { words })
-	}
-
-	pub fn from_file<P: AsRef<Path>>(src: P) -> Result<Words, Box<dyn Error>> {
-		Words::from_reader(&mut BufReader::new(fs::File::open(src)?))
-	}
-
-	pub fn first(&self) -> Option<Word> {
-		if self.words.is_empty() {
-			None
-		} else {
-			Some(self.words[0])
-		}
-	}
-
-	pub fn words(&self) -> &[Word] {
-		&self.words
-	}
-
-	pub fn filter<F>(&self, f: F) -> Words
-	where
-		F: FnMut(&&Word) -> bool,
-	{
-		Words {
-			words: self.words.iter().filter(f).map(|w| *w).collect(),
-		}
-	}
-
-	pub fn filter_into<F>(self, f: F) -> Words
-	where
-		F: FnMut(&Word) -> bool,
-	{
-		Words {
-			words: self.words.into_iter().filter(f).collect(),
-		}
-	}
-
-	pub fn rank<F>(&mut self, f: F)
-	where
-		F: Fn(&Word) -> f64,
-	{
-		self.words.sort_by_key(|w| Reverse(Score::from(f(w))));
-	}
-}
-
-impl std::ops::Index<usize> for Words {
-	type Output = Word;
-
-	fn index(&self, ix: usize) -> &Self::Output {
-		&self.words[ix]
-	}
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 #[repr(u8)]
 pub enum Directive {
 	Green,
 	Yellow,
-	Gray,
+	Black,
 }
 
 impl Directive {
@@ -285,7 +315,7 @@ impl Directive {
 		match self {
 			Directive::Green => guess[i] == candidate[i],
 			Directive::Yellow => guess[i] != candidate[i] && candidate.contains(guess[i]),
-			Directive::Gray => !candidate.contains(guess[i]),
+			Directive::Black => !candidate.contains(guess[i]),
 		}
 	}
 
@@ -293,7 +323,7 @@ impl Directive {
 		match self {
 			Directive::Green => 'g',
 			Directive::Yellow => 'y',
-			Directive::Gray => 'x',
+			Directive::Black => 'b',
 		}
 	}
 
@@ -301,125 +331,66 @@ impl Directive {
 		match self {
 			Directive::Green => '🟩',
 			Directive::Yellow => '🟨',
-			Directive::Gray => '⬜',
+			Directive::Black => '⬛',
 		}
 	}
 }
 
-pub struct Solution {
-	guesses: Vec<Guess>,
-}
-
-impl Solution {
-	pub fn new(guesses: Vec<Guess>) -> Solution {
-		Solution { guesses }
+pub fn report_stats(mut num_guesses: Vec<usize>) {
+	if num_guesses.is_empty() {
+		return;
 	}
 
-	pub fn number_of_guesses(&self) -> usize {
-		self.guesses.len()
+	num_guesses.sort();
+
+	let n = num_guesses.len();
+
+	let max = num_guesses[n - 1];
+	let mut hist = HashMap::new();
+	for n in num_guesses.iter() {
+		*hist.entry(n).or_insert(0) += 1;
 	}
-
-	pub fn guesses(&self) -> &[Guess] {
-		&self.guesses
-	}
-}
-
-pub struct Stats {
-	num_guesses: Vec<usize>,
-}
-
-impl Stats {
-	fn new(num_guesses: Vec<usize>) -> Stats {
-		let mut num_guesses = num_guesses;
-		num_guesses.sort();
-		Stats { num_guesses }
-	}
-
-	pub fn report(&self) {
-		if self.num_guesses.is_empty() {
-			return;
-		}
-
-		let n = self.num_guesses.len();
-
-		let max = self.num_guesses[n - 1];
-		let mut hist = HashMap::new();
-		for n in self.num_guesses.iter() {
-			*hist.entry(n).or_insert(0) += 1;
-		}
-		println!("Total:           {}", n.to_formatted_string(&Locale::en));
+	println!("Total:           {}", n.to_formatted_string(&Locale::en));
+	println!(
+		"Median Guesses:  {}",
+		num_guesses[n / 2].to_formatted_string(&Locale::en)
+	);
+	println!("Max Guesses:     {}", max.to_formatted_string(&Locale::en));
+	println!(
+		"Avg Guesses:     {:0.1}",
+		num_guesses.iter().sum::<usize>() as f64 / n as f64
+	);
+	let failed = num_guesses.iter().filter(|g| **g > 6).count();
+	println!(
+		"Percent Failed:  {:0.1}% ({})",
+		100.0 * failed as f64 / n as f64,
+		failed.to_formatted_string(&Locale::en)
+	);
+	println!();
+	println!("Guesses Histogram");
+	let dw = 60.0 / *hist.values().max().unwrap() as f64;
+	for i in 1..=max {
+		let v = *hist.get(&i).unwrap_or(&0);
+		let w = v as f64 * dw;
+		let bar = std::iter::repeat("░").take(w as usize).collect::<String>();
 		println!(
-			"Median Guesses:  {}",
-			self.num_guesses[n / 2].to_formatted_string(&Locale::en)
+			"{:2}: ░{} {} ({:0.1}%)",
+			i,
+			bar,
+			v.to_formatted_string(&Locale::en),
+			100.0 * v as f64 / n as f64
 		);
-		println!("Max Guesses:     {}", max.to_formatted_string(&Locale::en));
-		println!(
-			"Avg Guesses:     {:0.1}",
-			self.num_guesses.iter().sum::<usize>() as f64 / n as f64
-		);
-		let failed = self.num_guesses.iter().filter(|g| **g > 6).count();
-		println!(
-			"Percent Failed:  {:0.1}% ({})",
-			100.0 * failed as f64 / n as f64,
-			failed.to_formatted_string(&Locale::en)
-		);
-		println!();
-		println!("Guesses Histogram");
-		let dw = 60.0 / *hist.values().max().unwrap() as f64;
-		for i in 1..=max {
-			let v = *hist.get(&i).unwrap_or(&0);
-			let w = v as f64 * dw;
-			let bar = std::iter::repeat("░").take(w as usize).collect::<String>();
-			println!(
-				"{:2}: ░{} {} ({:0.1}%)",
-				i,
-				bar,
-				v.to_formatted_string(&Locale::en),
-				100.0 * v as f64 / n as f64
-			);
-		}
 	}
 }
 
-pub fn solve_all<S, P>(words: &Words, solve_fn: S, print_fn: P) -> Result<Stats, Box<dyn Error>>
-where
-	S: Fn(&Words, &Word) -> Option<Solution>,
-	P: Fn(&Word, &Solution) -> bool,
-{
-	let mut stats = Vec::with_capacity(words.words().len());
-	for solution in words.words() {
-		let solved = solve_fn(words, &solution).ok_or(format!("no soution for {}", &solution))?;
-		if print_fn(&solution, &solved) {
-			println!("{}", solution.to_string().to_uppercase());
-			for guess in solved.guesses() {
-				println!("{}", guess);
-			}
-			println!();
-		}
-		stats.push(solved.number_of_guesses());
+pub fn words_from_reader<R: io::BufRead>(r: R) -> Result<Vec<Word>, Box<dyn Error>> {
+	let mut words = Vec::new();
+	for line in r.lines() {
+		words.push(Word::from_str(&line?)?);
 	}
-	Ok(Stats::new(stats))
+	Ok(words)
 }
 
-pub enum Strategy {
-	A,
-	B,
-}
-
-impl Strategy {
-	pub fn from_str(s: &str) -> Result<Strategy, Box<dyn Error>> {
-		match s {
-			"a" => Ok(Strategy::A),
-			"b" => Ok(Strategy::B),
-			_ => Err(format!("invalid strategy: {}", s).into()),
-		}
-	}
-
-	pub fn solve(&self, words: &Words, word: &Word) -> Option<Solution> {
-		let solve_fn = match self {
-			Strategy::A => a::solve,
-			Strategy::B => b::solve,
-		};
-		solve_fn(words, word)
-	}
+pub fn words_from_file<P: AsRef<Path>>(src: P) -> Result<Vec<Word>, Box<dyn Error>> {
+	words_from_reader(BufReader::new(fs::File::open(src)?))
 }

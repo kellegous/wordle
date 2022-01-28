@@ -7,27 +7,21 @@ edition = "2021"
 clap = "3.0"
 num-format = "0.4"
 chrono = "0.4"
+serde = {version = "1.0.136", features = ["derive"]}
+serde_json = "1.0.78"
 
-# [[bin]]
-# name = "wordle-build-wordlist"
-# path = "src/wordle-build-wordlist/main.rs"
-
-# [[bin]]
-# name = "wordle-solve"
-# path = "src/wordle-solve/main.rs"
+[[bin]]
+name = "wordle-solve"
+path = "src/wordle-solve/main.rs"
 
 [[bin]]
 name = "wordle-solve-all"
 path = "src/wordle-solve-all/main.rs"
-
-# [[bin]]
-# name = "wordle-exp"
-# path = "src/wordle-exp/main.rs"
 
 [[bin]]
 name = "wordle-list-solutions"
 path = "src/wordle-list-solutions/main.rs"
 
 [[bin]]
-name = "wordle-analysis"
-path = "src/wordle-analysis/main.rs"
+name = "wordle-strategy-to-json"
+path = "src/wordle-strategy-to-json/main.rs"

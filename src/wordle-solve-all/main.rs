@@ -1,15 +1,25 @@
-use std::collections::HashSet;
 use std::error::Error;
-use wordle::{solve_all, Strategy, Word, Words};
+use std::fs;
+use std::io::BufReader;
+use wordle::{decision_tree, report_stats, words_from_file, Guess};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-solve-all")
 		.arg(
-			clap::Arg::new("words")
-				.long("words")
+			clap::Arg::new("solutions-file")
+				.short('s')
+				.long("solutions-file")
 				.takes_value(true)
-				.default_value("wordle.txt")
-				.help("word list file"),
+				.default_value("solutions")
+				.help("file containing list of all possible solutions"),
+		)
+		.arg(
+			clap::Arg::new("decision-tree-file")
+				.short('t')
+				.long("decision-tree-file")
+				.takes_value(true)
+				.default_value("decision-tree.json")
+				.help("json file containing the decision tree"),
 		)
 		.arg(
 			clap::Arg::new("verbose")
@@ -18,42 +28,39 @@ fn main() -> Result<(), Box<dyn Error>> {
 				.takes_value(false)
 				.help("should verbose output be shown?"),
 		)
-		.arg(
-			clap::Arg::new("solutions")
-				.long("solution")
-				.takes_value(true)
-				.multiple_occurrences(true)
-				.help("solutions to focus in on (enables verbose)"),
-		)
-		.arg(
-			clap::Arg::new("strategy")
-				.long("strategy")
-				.short('s')
-				.takes_value(true)
-				.default_value("a")
-				.help("strategy to use to solve"),
-		)
 		.get_matches();
 
-	let to_show = match matches.values_of("solutions") {
-		Some(vals) => vals
-			.map(|v| Word::from_str(v))
-			.collect::<Result<HashSet<_>, _>>()?,
-		None => HashSet::new(),
-	};
+	let solutions = words_from_file(matches.value_of("solutions-file").unwrap())?;
+	let tree: decision_tree::Node = serde_json::from_reader(BufReader::new(fs::File::open(
+		matches.value_of("decision-tree-file").unwrap(),
+	)?))?;
+	let verbose = matches.is_present("verbose");
 
-	let verbose = matches.is_present("verbose") || !to_show.is_empty();
-	let words = Words::from_file(matches.value_of("words").unwrap())?;
-	let strategy = Strategy::from_str(matches.value_of("strategy").unwrap())?;
-	let stats = solve_all(
-		&words,
-		|words, word| strategy.solve(words, word),
-		|word, solution| {
-			verbose && (to_show.is_empty() || to_show.contains(word))
-				|| solution.number_of_guesses() > 6
-		},
-	)?;
+	let mut stats = Vec::with_capacity(solutions.len());
+	for solution in &solutions {
+		let mut guesses = Vec::new();
+		let mut node = &tree;
+		loop {
+			let guess = Guess::new(node.word(), solution);
+			guesses.push(guess.clone());
+			if guess.word() == solution {
+				break;
+			}
 
-	stats.report();
+			node = node.next(guess.feedback()).unwrap(); // TODO(knorton): no solution found error.
+		}
+
+		if verbose {
+			println!("{}", solution);
+			for guess in &guesses {
+				println!("{}", guess);
+			}
+			println!();
+		}
+
+		stats.push(guesses.len());
+	}
+
+	report_stats(stats);
 	Ok(())
 }
