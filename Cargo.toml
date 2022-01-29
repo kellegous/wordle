@@ -24,9 +24,5 @@ name = "wordle-list-solutions"
 path = "src/wordle-list-solutions/main.rs"
 
 [[bin]]
-name = "wordle-strategy-to-json"
-path = "src/wordle-strategy-to-json/main.rs"
-
-[[bin]]
 name = "wordle-import-decision-tree"
 path = "src/wordle-import-decision-tree/main.rs"
