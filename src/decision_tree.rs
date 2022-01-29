@@ -12,9 +12,6 @@ fn build_node(
 ) -> Option<Node> {
 	let mut nodes = HashMap::new();
 	for (k, v) in children.iter_mut() {
-		if depth == 0 {
-			println!("  {} {}", k, v.len());
-		}
 		match Node::build(v, solutions, depth + 1) {
 			Some(node) => nodes.insert(k.clone(), node),
 			None => return None,
@@ -75,9 +72,6 @@ impl Node {
 		for i in 0..guesses.len() {
 			guesses.swap(0, i);
 			let guess = guesses[0];
-			if depth == 0 {
-				println!("{}", guess);
-			}
 
 			let mut children: HashMap<Feedback, Vec<Word>> = HashMap::new();
 			for j in 1..guesses.len() {
