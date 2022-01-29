@@ -3,16 +3,11 @@ use chrono::{Duration, NaiveDate};
 use std::error::Error;
 use std::fs;
 use std::io::{BufRead, BufReader};
+use wordle::arg;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-list-solutions")
-		.arg(
-			clap::Arg::new("words")
-				.long("words")
-				.takes_value(true)
-				.default_value("words")
-				.help("list of words"),
-		)
+		.arg(arg::for_solutions_file())
 		.arg(
 			clap::Arg::new("n")
 				.long("n")
@@ -22,9 +17,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 		)
 		.get_matches();
 
-	let words = BufReader::new(fs::File::open(matches.value_of("words").unwrap())?)
-		.lines()
-		.collect::<Result<Vec<_>, _>>()?;
+	let words = BufReader::new(fs::File::open(
+		matches.value_of(arg::SOLUTIONS_FILE).unwrap(),
+	)?)
+	.lines()
+	.collect::<Result<Vec<_>, _>>()?;
 	let n = matches.value_of("n").unwrap().parse::<usize>()?;
 
 	let start = NaiveDate::from_ymd(2021, 6, 19);

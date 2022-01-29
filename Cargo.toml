@@ -26,3 +26,7 @@ path = "src/wordle-list-solutions/main.rs"
 [[bin]]
 name = "wordle-import-decision-tree"
 path = "src/wordle-import-decision-tree/main.rs"
+
+[[bin]]
+name = "wordle-build-decision-tree"
+path = "src/wordle-build-decision-tree/main.rs"

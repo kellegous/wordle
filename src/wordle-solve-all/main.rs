@@ -1,40 +1,21 @@
 use std::error::Error;
 use std::fs;
 use std::io::BufReader;
+use wordle::arg;
 use wordle::{decision_tree, report_stats, words_from_file, Guess};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-solve-all")
-		.arg(
-			clap::Arg::new("solutions-file")
-				.short('s')
-				.long("solutions-file")
-				.takes_value(true)
-				.default_value("solutions")
-				.help("file containing list of all possible solutions"),
-		)
-		.arg(
-			clap::Arg::new("decision-tree-file")
-				.short('t')
-				.long("decision-tree-file")
-				.takes_value(true)
-				.default_value("decision-tree.json")
-				.help("json file containing the decision tree"),
-		)
-		.arg(
-			clap::Arg::new("verbose")
-				.long("verbose")
-				.short('v')
-				.takes_value(false)
-				.help("should verbose output be shown?"),
-		)
+		.arg(arg::for_solutions_file())
+		.arg(arg::for_decision_tree_file())
+		.arg(arg::for_verbose())
 		.get_matches();
 
-	let solutions = words_from_file(matches.value_of("solutions-file").unwrap())?;
+	let solutions = words_from_file(matches.value_of(arg::SOLUTIONS_FILE).unwrap())?;
 	let tree: decision_tree::Node = serde_json::from_reader(BufReader::new(fs::File::open(
-		matches.value_of("decision-tree-file").unwrap(),
+		matches.value_of(arg::DECISION_TREE_FILE).unwrap(),
 	)?))?;
-	let verbose = matches.is_present("verbose");
+	let verbose = matches.is_present(arg::VERBOSE);
 
 	let mut stats = Vec::with_capacity(solutions.len());
 	for solution in &solutions {

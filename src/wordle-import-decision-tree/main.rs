@@ -1,17 +1,11 @@
 use std::error::Error;
 use std::fs;
+use wordle::arg;
 use wordle::decision_tree;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-import-decision-tree")
-		.arg(
-			clap::Arg::new("decision-tree-file")
-				.short('t')
-				.long("decision-tree-file")
-				.takes_value(true)
-				.default_value("decision-tree.json")
-				.help("where to write the file containing the decision tree"),
-		)
+		.arg(arg::for_decision_tree_file())
 		.arg(
 			clap::Arg::new("strategy-url")
 				.short('s')
@@ -29,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	)?)?;
 
 	serde_json::to_writer(
-		fs::File::create(matches.value_of("decision-tree-file").unwrap())?,
+		fs::File::create(matches.value_of(arg::DECISION_TREE_FILE).unwrap())?,
 		&tree,
 	)?;
 

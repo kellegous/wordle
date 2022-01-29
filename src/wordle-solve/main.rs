@@ -1,18 +1,12 @@
 use std::error::Error;
 use std::fs;
 use std::io::BufReader;
+use wordle::arg;
 use wordle::{decision_tree, Feedback};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let matches = clap::App::new("wordle-solve")
-		.arg(
-			clap::Arg::new("decision-tree-file")
-				.short('t')
-				.long("decision-tree-file")
-				.takes_value(true)
-				.default_value("decision-tree.json")
-				.help("json file containing the decision tree"),
-		)
+		.arg(arg::for_decision_tree_file())
 		.arg(
 			clap::Arg::new("feedback")
 				.takes_value(true)
@@ -22,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.get_matches();
 
 	let tree: decision_tree::Node = serde_json::from_reader(BufReader::new(fs::File::open(
-		matches.value_of("decision-tree-file").unwrap(),
+		matches.value_of(arg::DECISION_TREE_FILE).unwrap(),
 	)?))?;
 
 	let feedback = matches

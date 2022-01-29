@@ -7,6 +7,7 @@ use std::fs;
 use std::io::{self, BufReader};
 use std::path::Path;
 
+pub mod arg;
 pub mod decision_tree;
 
 pub const WORD_SIZE: usize = 5;
