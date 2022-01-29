@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		)
 		.get_matches();
 
-	let root = decision_tree::from_stategy(BufReader::new(fs::File::open(
+	let root = decision_tree::from_strategy(BufReader::new(fs::File::open(
 		matches.value_of("strategy-file").unwrap(),
 	)?))?;
 

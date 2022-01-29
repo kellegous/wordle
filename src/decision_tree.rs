@@ -2,7 +2,7 @@ use super::{Feedback, Guess, Word};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
-use std::io;
+use std::io::{self, BufRead, BufReader};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
@@ -67,7 +67,29 @@ fn combine_line(prev: &str, curr: &str) -> String {
 	format!("{}{}", &prev[0..n], &curr[n..])
 }
 
-pub fn from_stategy<R: io::BufRead>(r: R) -> Result<Node, Box<dyn Error>> {
+pub fn from_reader<R: io::Read>(r: R) -> Result<Node, Box<dyn Error>> {
+	let r = BufReader::new(r);
+	let mut lines = r.lines();
+	let (mut root, mut prev) = match lines.next() {
+		Some(line) => {
+			let line = line?;
+			let mut node = Node::new(&Word::from_str(&line[..5])?);
+			node.add_guesses(&parse_guesses(&line[6..line.len() - 7])?);
+			(node, line)
+		}
+		None => return Err("empty file".into()),
+	};
+
+	for line in lines {
+		let line = combine_line(&prev, &line?);
+		root.add_guesses(&parse_guesses(&line[6..line.len() - 7])?);
+		prev = line;
+	}
+
+	Ok(root)
+}
+
+pub fn from_strategy<R: io::BufRead>(r: R) -> Result<Node, Box<dyn Error>> {
 	let mut lines = r.lines();
 
 	let (mut root, mut prev) = match lines.next() {
