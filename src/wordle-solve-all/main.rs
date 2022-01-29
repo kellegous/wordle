@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		}
 
 		if verbose {
-			println!("{}", solution.to_string().to_uppercase());
+			println!("{}", solution.to_uppercase_string());
 			for guess in &guesses {
 				println!("{}", guess);
 			}

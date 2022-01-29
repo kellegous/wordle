@@ -95,7 +95,14 @@ impl Word {
 	}
 
 	pub fn to_string(&self) -> String {
-		self.chars().iter().map(|c| c.char()).collect::<String>()
+		self.chars().iter().map(|c| c.char()).collect()
+	}
+
+	pub fn to_uppercase_string(&self) -> String {
+		self.chars()
+			.iter()
+			.map(|c| c.char().to_ascii_uppercase())
+			.collect()
 	}
 }
 
