@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		let mut guesses = Vec::new();
 		let mut node = &tree;
 		loop {
-			let guess = Guess::new(node.word(), solution);
+			let guess = Guess::from_word(node.word(), solution);
 			guesses.push(guess.clone());
 			if guess.word() == solution {
 				break;

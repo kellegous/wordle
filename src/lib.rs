@@ -181,27 +181,31 @@ impl Feedback {
 	}
 
 	pub fn from_word(guess: &Word, solution: &Word) -> Feedback {
-		// TODO(knorton): This is doggy doo.
 		let mut directives = [Directive::Black; WORD_SIZE];
-		let mut resolved = [false; WORD_SIZE];
+		let mut claimed = [false; WORD_SIZE];
+
+		// mark greens
 		for (i, c) in guess.chars().iter().enumerate() {
 			if solution[i] == *c {
 				directives[i] = Directive::Green;
-				resolved[i] = true;
+				claimed[i] = true;
 			}
 		}
+
+		// mark yellows
 		for (i, c) in guess.chars().iter().enumerate() {
 			if directives[i] == Directive::Green {
 				continue;
 			}
 			for (j, k) in solution.chars().iter().enumerate() {
-				if !resolved[j] && *k == *c {
+				if !claimed[j] && *k == *c {
 					directives[i] = Directive::Yellow;
-					resolved[j] = true;
+					claimed[j] = true;
 					break;
 				}
 			}
 		}
+
 		Feedback { directives }
 	}
 
@@ -259,19 +263,15 @@ pub struct Guess {
 	word: Word,
 }
 
-// TODO(knorton): Fix the names of methods here.
 impl Guess {
-	pub fn new(word: &Word, solution: &Word) -> Guess {
+	pub fn new(feedback: Feedback, word: Word) -> Guess {
+		Guess { feedback, word }
+	}
+
+	pub fn from_word(word: &Word, solution: &Word) -> Guess {
 		Guess {
 			word: *word,
 			feedback: Feedback::from_word(word, solution),
-		}
-	}
-
-	pub fn from_feedback_and_word(feedback: Feedback, word: Word) -> Guess {
-		Guess {
-			feedback: feedback,
-			word: word,
 		}
 	}
 

@@ -1,8 +1,31 @@
 use super::{Feedback, Guess, Word};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io::{self, BufRead, BufReader};
+
+fn build_node(
+	word: &Word,
+	children: &mut [(Feedback, Vec<Word>)],
+	solutions: &HashSet<Word>,
+	depth: usize,
+) -> Option<Node> {
+	let mut nodes = HashMap::new();
+	for (k, v) in children.iter_mut() {
+		if depth == 0 {
+			println!("  {} {}", k, v.len());
+		}
+		match Node::build(v, solutions, depth + 1) {
+			Some(node) => nodes.insert(k.clone(), node),
+			None => return None,
+		};
+	}
+
+	Some(Node {
+		word: *word,
+		next: Some(nodes),
+	})
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
@@ -39,6 +62,47 @@ impl Node {
 	pub fn word(&self) -> &Word {
 		&self.word
 	}
+
+	pub fn build(guesses: &mut [Word], solutions: &HashSet<Word>, depth: usize) -> Option<Node> {
+		if depth >= 5 {
+			return None;
+		}
+
+		if guesses.len() == 1 {
+			return Some(Node::new(&guesses[0]));
+		}
+
+		for i in 0..guesses.len() {
+			guesses.swap(0, i);
+			let guess = guesses[0];
+			if depth == 0 {
+				println!("{}", guess);
+			}
+
+			let mut children: HashMap<Feedback, Vec<Word>> = HashMap::new();
+			for j in 1..guesses.len() {
+				let feedback = Feedback::from_word(&guess, &guesses[j]);
+				children
+					.entry(feedback)
+					.or_insert_with(|| Vec::new())
+					.push(guesses[j]);
+			}
+
+			let mut children = children
+				.into_iter()
+				.filter(|(_, v)| v.iter().any(|w| solutions.contains(w)))
+				.collect::<Vec<(Feedback, Vec<Word>)>>();
+
+			children.sort_by(|(_, a), (_, b)| a.len().cmp(&b.len()));
+
+			match build_node(&guess, &mut children, solutions, depth) {
+				Some(node) => return Some(node),
+				None => continue,
+			};
+		}
+
+		None
+	}
 }
 
 pub fn from_json_reader<R: io::Read>(r: R) -> Result<Node, serde_json::Error> {
@@ -50,7 +114,7 @@ fn parse_guesses(s: &str) -> Result<Vec<Guess>, Box<dyn Error>> {
 	let mut path = Vec::with_capacity(n);
 	for i in 0..n {
 		let i = 12 * i + i;
-		path.push(Guess::from_feedback_and_word(
+		path.push(Guess::new(
 			Feedback::from_str(&s[i..i + 5])?,
 			Word::from_str(&s[i + 7..i + 7 + 5])?,
 		));
