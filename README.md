@@ -4,10 +4,6 @@ Imagine yourself, over two years into a pandemic and people start posting obscur
 
 If you must go down this road, you can begin your journey here. https://www.powerlanguage.co.uk/wordle/
 
-## NOTE: This is a WIP and it's very likely broken.
-
-This is a fun little exploratory project where I'm tinkering with various approaches. This code will be broken a lot until I remove this banner.
-
 ## How to use this solver.
 
 ### Building it.
@@ -22,35 +18,47 @@ To get started, simply run the solver. Each time you get feedback from the puzzl
 
 ```
 $ ./target/release/wordle-solve
-alert
+palet
 ```
 
-Enter "alert" as the first row of the puzzle. The feedback you receive from the puzzle will include green, yellow and gray squares. You will then add that to the command line for the next run. Let's assume your feedback looks as follows:
+Enter "panic" as the first row of the puzzle. The feedback you receive from the puzzle will include green, yellow and gray squares. You will then add that to the command line for the next run. Let's assume your feedback looks as follows:
 
-🟨⬜⬜⬜⬜
+⬜⬜⬜🟨⬜
 
 The next command to run will be:
 
 ```
-$ ./target/release/wordle-solve ybbbb
-piano
+$ ./target/release/wordle-solve bbbyb
+drone
 ```
 
-Enter "piano" into the 2nd line of the puzzle. Let's now assume you get feedback of:
+Enter "drone" into the 2nd line of the puzzle. Let's now assume you get feedback of:
 
-🟩🟨🟨🟨⬜
+⬜🟨🟩🟨🟩
 
 The next command to run will be:
 
 ```
-$ ./target/release/wordle-solve yxxxx gyyyx
-panic
+$ ./target/release/wordle-solve bbbyb bygyg 
+snore
 ```
 
-Enter "panic" into the 3rd line.
+Enter "snore" into the 3rd line.
 
 As you can see, feedback is entered as 5 character expressions. The characters for each type of feedback are:
 
  - 🟩 "g"
  - 🟨 "y"
  - ⬜ "b"
+
+### Just plain ole cheating
+
+The method that wordle uses to select a word each day is pretty simple and can be replicated with just a few lines of code. If want to take away all the fun of the game or if you want to terrorize your friends by blurting out tomorrow's solution ahead of time, run:
+
+```
+./target/release/wordle-list-solutions
+```
+
+### How does this work?
+
+The file `decision-tree.json` stores a decision tree with the best guess for any given series of feedback strings. The file can be built using the command `wordle-build-decision-tree`. However, that command only finds any decision tree that is capable of solving 100% of wordle puzzles. That command does not look for the optimal decision tree. Fortunately, [Alex Selby](http://sonorouschocolate.com/notes/index.php?title=The_best_strategies_for_Wordle) used a similar approach and did complete the taxing search for an optimal decision tree. Decision trees can be built from the output of his programs using `wordle-import-decision-tree`. Running that command with no arguments will import his [optimal solution](http://sonorouschocolate.com/notes/images/0/0e/Optimaltree.hardmode5.txt) for hard mode that is guaranteed to find every solution in 5 guesses.
