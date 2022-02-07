@@ -365,7 +365,7 @@ pub fn report_stats(mut num_guesses: Vec<usize>) {
 	);
 	println!("Max Guesses:     {}", max.to_formatted_string(&Locale::en));
 	println!(
-		"Avg Guesses:     {:0.1}",
+		"Avg Guesses:     {:0.3}",
 		num_guesses.iter().sum::<usize>() as f64 / n as f64
 	);
 	let failed = num_guesses.iter().filter(|g| **g > 6).count();
