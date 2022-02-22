@@ -14,36 +14,25 @@ cargo build --release
 
 ### Using it.
 
-To get started, simply run the solver. Each time you get feedback from the puzzle, you will run the command again adding the feedback you received on the command line.
+To get started, simply run the solver. It will offer you a starting word and wait for you to enter the corresponding feedback.
 
 ```
 $ ./target/release/wordle-solve
-palet
+PALET >
 ```
 
-Enter "panic" as the first row of the puzzle. The feedback you receive from the puzzle will include green, yellow and gray squares. You will then add that to the command line for the next run. Let's assume your feedback looks as follows:
+Enter "PALET" as the first row of the puzzle. The feedback you receive from the puzzle will include green, yellow and black (or gray) squares. You can then enter the feedback into the prompt to get the next word you should guess.
 
-⬜⬜⬜🟨⬜
+Let's assume your feedback looks as follows:
 
-The next command to run will be:
+⬜⬜⬜⬜🟨
 
-```
-$ ./target/release/wordle-solve bbbyb
-drone
-```
-
-Enter "drone" into the 2nd line of the puzzle. Let's now assume you get feedback of:
-
-⬜🟨🟩🟨🟩
-
-The next command to run will be:
+Enter that feedback and the best next guess will be output along with a prompt for the corresponding feedback.
 
 ```
-$ ./target/release/wordle-solve bbbyb bygyg 
-snore
+PALET > bbbby
+NORTH >
 ```
-
-Enter "snore" into the 3rd line.
 
 As you can see, feedback is entered as 5 character expressions. The characters for each type of feedback are:
 

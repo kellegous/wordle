@@ -12,7 +12,7 @@ pub mod decision_tree;
 
 pub const WORD_SIZE: usize = 5;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, PartialOrd, Ord)]
 pub struct Char {
 	c: u8,
 }
@@ -68,7 +68,7 @@ impl<'de> Visitor<'de> for WordVisitor {
 	}
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, PartialOrd, Ord)]
 pub struct Word {
 	chars: [Char; WORD_SIZE],
 }
@@ -222,6 +222,10 @@ impl Feedback {
 
 	fn directives(&self) -> &[Directive] {
 		&self.directives
+	}
+
+	pub fn is_all_green(&self) -> bool {
+		self.directives.iter().all(|d| *d == Directive::Green)
 	}
 }
 
