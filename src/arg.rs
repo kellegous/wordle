@@ -29,7 +29,7 @@ pub fn for_decision_tree_file<'a>() -> clap::Arg<'a> {
 		.short('t')
 		.long("decision-tree-file")
 		.takes_value(true)
-		.default_value("decision-tree.json")
+		.default_value("hard.json")
 		.help("json file containing the decision tre")
 }
 
