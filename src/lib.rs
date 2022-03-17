@@ -343,7 +343,7 @@ impl Directive {
 		match self {
 			Directive::Green => '🟩',
 			Directive::Yellow => '🟨',
-			Directive::Black => '⬛',
+			Directive::Black => '⬜',
 		}
 	}
 }
